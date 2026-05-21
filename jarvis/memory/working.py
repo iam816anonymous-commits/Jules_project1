@@ -31,7 +31,7 @@ class WorkingMemory:
 
     def _persist(self):
         if self.state:
-            self.store.update_belief("working_state", self.state.dict(), self.state.confidence)
+            self.store.update_belief("working_state", self.state.model_dump(), self.state.confidence)
 
     def get_full_state(self) -> Optional[Dict[str, Any]]:
-        return self.state.dict() if self.state else None
+        return self.state.model_dump() if self.state else None

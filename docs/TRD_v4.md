@@ -7,7 +7,7 @@ Jarvis OS is built as a modular system with a central `RuntimeKernel`.
 1. **RuntimeKernel**: The heart of the OS, managing the Observe-Think-Plan-Act-Reflect loop.
 2. **Planner vNext**: Graph-based planning engine supporting non-linear execution and runtime mutation.
 3. **Memory System**:
-   - Postgres for structured episodic and learning data.
+   - SQLite for structured episodic and learning data.
    - Qdrant for semantic vector storage.
    - Redis for working memory and active context.
 4. **Desktop Control**: OS-level interaction using `pyautogui`, `psutil`, and `pygetwindow`.
@@ -17,7 +17,7 @@ Jarvis OS is built as a modular system with a central `RuntimeKernel`.
 ## Technical Stack
 - **Backend**: Python 3.12, FastAPI, SQLAlchemy.
 - **Frontend**: React, Tauri.
-- **Database**: Postgres, Qdrant, Redis.
+- **Database**: SQLite (Local), Postgres (Cloud), Qdrant, Redis.
 - **Vision**: OCR (Tesseract/EasyOCR), OpenCV.
 
 ## Plugin & Multi-Agent Design

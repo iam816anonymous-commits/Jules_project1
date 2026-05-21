@@ -1,24 +1,34 @@
 from typing import Dict, Any, List
 import time
+from jarvis.persistence.memory_store import MemoryStore
 
 class BenchmarkRunner:
-    def __init__(self):
-        self.stats = {
-            "task_completion": [],
-            "latency": [],
-            "recovery_success": [],
-            "hallucination_detected": 0
-        }
+    def __init__(self, store: MemoryStore):
+        self.store = store
 
-    def record_task_result(self, success: bool, duration: float):
-        self.stats["task_completion"].append(success)
-        self.stats["latency"].append(duration)
+    def calculate_v1_metrics(self) -> Dict[str, Any]:
+        """
+        Derive metrics from real execution history in the DB.
+        """
+        cursor = self.store.conn.cursor()
 
-    def get_summary(self) -> Dict[str, Any]:
-        success_rate = sum(self.stats["task_completion"]) / len(self.stats["task_completion"]) if self.stats["task_completion"] else 0
-        avg_latency = sum(self.stats["latency"]) / len(self.stats["latency"]) if self.stats["latency"] else 0
+        # 1. Completion Rate
+        cursor.execute("SELECT COUNT(*) FROM episodes WHERE reflection LIKE '%success\": true%'")
+        successes = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM episodes")
+        total = cursor.fetchone()[0]
+
+        # 2. Avg Reward
+        cursor.execute("SELECT AVG(reward) FROM episodes")
+        avg_reward = cursor.fetchone()[0] or 0.0
+
+        # 3. Hallucination Count (Proxy by low belief confidence in history)
+        cursor.execute("SELECT COUNT(*) FROM beliefs WHERE confidence < 0.5")
+        hallucinations = cursor.fetchone()[0]
+
         return {
-            "success_rate": success_rate,
-            "avg_latency": avg_latency,
-            "total_tasks": len(self.stats["task_completion"])
+            "success_rate": successes / total if total > 0 else 0,
+            "avg_reward": avg_reward,
+            "hallucination_count": hallucinations,
+            "total_episodes": total
         }
