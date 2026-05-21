@@ -1,100 +1,71 @@
 import asyncio
 import logging
-from typing import Optional, Dict, Any
-from jarvis.core.schemas import RuntimeState
-from jarvis.world_model.world_state import WorldState
-from jarvis.world_model.observation_fusion import ObservationFusion
-from jarvis.world_model.action_validator import ActionValidator
-from jarvis.planner.planner import Planner
+from typing import Optional, Dict, Any, List
+from jarvis.cognition.cognitive_loop import CognitiveCycle
+from jarvis.cognition.goal_manager import GoalManager
+from jarvis.cognition.task_decomposer import TaskDecomposer
 from jarvis.core.policy import PolicyEngine, RiskLevel
 from jarvis.desktop.control_executor import ControlExecutor
+from jarvis.world_model.action_validator import ActionValidator
 
 logger = logging.getLogger(__name__)
 
 class RuntimeKernel:
     def __init__(self):
         self.active = False
-        self.world_model = WorldState()
-        self.fusion = ObservationFusion()
-        self.validator = ActionValidator()
-        self.planner = Planner()
+        self.cognitive_cycle = CognitiveCycle()
+        self.goal_manager = GoalManager()
+        self.decomposer = TaskDecomposer()
         self.policy = PolicyEngine()
+        self.validator = ActionValidator()
         self.executor = ControlExecutor()
         self.session_id: Optional[str] = None
 
     async def start(self, goal: str, session_id: str):
         self.active = True
         self.session_id = session_id
-        self.world_model.current_task_id = session_id
-        self.world_model.active_goal = goal
-        logger.info(f"Starting RuntimeKernel for session {session_id}")
-        await self._loop()
 
-    async def _loop(self):
+        # 1. Initialize Goal
+        goal_id = self.goal_manager.add_goal(goal)
+        self.goal_manager.active_goal_id = goal_id
+
+        # 2. Decompose Goal into subtasks
+        subtasks = await self.decomposer.decompose(goal)
+        dag = self.decomposer.build_dag(subtasks)
+
+        # 3. Start Cognitive Loop
+        # We delegate the core execution logic to CognitiveCycle
+        # but the Kernel provides the high-level orchestration
+        logger.info(f"Starting RuntimeKernel for session {session_id} with goal: {goal}")
+
+        # In a real system, the CognitiveCycle would be the primary loop
+        # We'll run it here
+        asyncio.create_task(self.cognitive_cycle.start())
+
+        await self._orchestrate_execution(dag)
+
+    async def _orchestrate_execution(self, dag: List[Any]):
         while self.active:
-            try:
-                # 1. Observe & Fuse
-                raw_obs = await self.gather_raw_observations()
-                unified_obs = self.fusion.merge(
-                    raw_obs["vision"],
-                    raw_obs["os"],
-                    raw_obs["browser"],
-                    []
-                )
+            # High level orchestration logic
+            # This would interface with the CognitiveCycle's belief state
+            # and drive the execution of the DAG nodes
+            await asyncio.sleep(1)
 
-                # 2. Update World Model
-                self.world_model.update(unified_obs.model_dump())
-
-                # 3. Plan
-                plans = await self.planner.generate_plans(
-                    self.world_model.active_goal,
-                    self.world_model.snapshot()
-                )
-                best_plan = await self.planner.select_best_plan(plans)
-
-                # 4. Validate & Execute
-                for step in best_plan.steps:
-                    # Risk Check
-                    risk = self.policy.evaluate(step["action"], step.get("params", {}))
-                    if risk == RiskLevel.BLOCK:
-                        logger.error(f"Action blocked by policy: {step['action']}")
-                        continue
-
-                    # State Validation
-                    is_valid, msg = self.validator.validate(step, self.world_model)
-                    if not is_valid:
-                        logger.warning(f"Action validation failed: {msg}")
-                        await self.handle_drift()
-                        break
-
-                    # Execution
-                    result = await self.execute_action(step)
-
-                    # 5. Reflect
-                    # ... update memory and learning ...
-
-            except Exception as e:
-                logger.error(f"Error in runtime loop: {e}")
-                await asyncio.sleep(1)
-
-    async def gather_raw_observations(self) -> Dict[str, Any]:
-        # Implementation to gather data from vision/desktop
-        return {"vision": {}, "os": {}, "browser": {}}
+    async def stop(self):
+        self.active = False
+        await self.cognitive_cycle.stop()
 
     async def execute_action(self, action: Dict[str, Any]) -> Any:
-        # Route to ControlExecutor
-        action_type = action.get("action")
-        params = action.get("params", {})
+        # Integrated Execution with Policy and Validation
+        risk = self.policy.evaluate(action.get("action"), action.get("params", {}))
+        if risk == RiskLevel.BLOCK:
+            raise PermissionError(f"Action blocked by policy: {action.get('action')}")
 
-        if action_type == "mouse_move":
-            return await self.executor.mouse_move(params.get("x"), params.get("y"))
-        elif action_type == "mouse_click":
-            return await self.executor.mouse_click(params.get("x"), params.get("y"))
-        elif action_type == "type":
-            return await self.executor.keyboard_type(params.get("text"))
+        is_valid, msg = self.validator.validate(action, self.cognitive_cycle.world_model)
+        if not is_valid:
+            logger.warning(f"Validation failed: {msg}")
+            return {"success": False, "error": msg}
 
-        return {"success": True, "action": action_type}
-
-    async def handle_drift(self):
-        # Trigger re-planning or recovery
-        pass
+        # Route to executor
+        # ...
+        return {"success": True}

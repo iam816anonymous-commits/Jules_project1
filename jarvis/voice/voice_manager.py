@@ -1,55 +1,27 @@
-import logging
+from typing import List, Dict, Any, Optional
 
 class ASR:
-    def __init__(self):
-        pass
-
-    async def transcribe(self, audio_data: bytes) -> str:
-        """
-        Automatic Speech Recognition: Audio to Text.
-        """
+    async def transcribe(self, audio: bytes) -> str:
         return ""
 
 class TTS:
-    def __init__(self):
-        pass
-
-    async def speak(self, text: str) -> bytes:
-        """
-        Text to Speech: Text to Audio.
-        """
+    async def synthesize(self, text: str) -> bytes:
         return b""
 
-class VoiceRouter:
-    def __init__(self):
-        pass
-
-    def route_intent(self, text: str):
-        """
-        Route transcribed text to the appropriate handler.
-        """
-        pass
+class WakeEngine:
+    def detect(self, chunk: bytes) -> bool:
+        return False
 
 class DialogManager:
     def __init__(self):
-        self.state = "idle"
+        self.context = {}
 
-    def handle_interaction(self, input_text: str):
-        pass
+    def process_input(self, text: str) -> str:
+        return f"Acknowledged: {text}"
 
 class ConversationMemory:
     def __init__(self):
-        self.history = []
+        self.turns = []
 
     def add_turn(self, speaker: str, text: str):
-        self.history.append({"speaker": speaker, "text": text})
-
-class WakeEngine:
-    def __init__(self):
-        pass
-
-    def detect_wakeword(self, audio_chunk: bytes) -> bool:
-        """
-        Detect "Jarvis" or other wakewords.
-        """
-        return False
+        self.turns.append({"speaker": speaker, "text": text})
