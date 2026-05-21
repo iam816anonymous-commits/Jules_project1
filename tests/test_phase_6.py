@@ -6,10 +6,8 @@ from jarvis.learning.mistake_tracker import MistakeTracker
 class TestPhase6(unittest.TestCase):
     def test_reward_calculation(self):
         engine = RewardEngine()
-        outcome = {"success": True, "recovered": False}
-        performance = {"is_fast": True}
-        reward = engine.calculate_reward(outcome, performance)
-        self.assertGreater(reward, 1.0) # success + speed bonus
+        reward = engine.calculate_reward(success=True, duration=5.0, hallucinated=False, recovered=False)
+        self.assertGreater(reward, 0.5)
 
     def test_skill_library(self):
         lib = SkillLibrary()

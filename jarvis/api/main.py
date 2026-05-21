@@ -20,8 +20,16 @@ async def start_runtime(goal: str, background_tasks: BackgroundTasks):
 
 @app.get("/api/runtime/status")
 async def get_status():
-    return {"active": kernel.active, "world_state": kernel.world_model.snapshot()}
+    return {
+        "active": kernel.active,
+        "world_state": kernel.cognitive_cycle.world_model.snapshot()
+    }
 
-@app.get("/api/memory")
-async def get_memory():
-    return {"episodes": [], "semantic": []}
+@app.get("/api/memory/summary")
+async def get_memory_summary():
+    return kernel.store.summarize()
+
+@app.get("/api/memory/episodes")
+async def get_episodes():
+    # In production, query SQLite
+    return {"episodes": []}

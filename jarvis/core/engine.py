@@ -23,10 +23,27 @@ class RuntimeGraphEngine:
         if node_id in self.nodes and dependency_id in self.nodes:
             self.nodes[node_id].dependencies.append(dependency_id)
 
+    def mutate_graph(self, failed_node_id: str, recovery_nodes: List[Node]):
+        """
+        Inject recovery nodes into the DAG after a failure.
+        """
+        if failed_node_id not in self.nodes:
+            return
+
+        # 1. Update status of failed node
+        self.nodes[failed_node_id].status = "failed"
+
+        # 2. Add recovery nodes and link them
+        prev_id = failed_node_id
+        for node in recovery_nodes:
+            self.add_node(node)
+            self.add_dependency(node.id, prev_id)
+            prev_id = node.id
+
     def get_executable_nodes(self) -> List[Node]:
         executable = []
         for node in self.nodes.values():
             if node.status == "pending":
-                if all(self.nodes[dep_id].status == "completed" for dep_id in node.dependencies):
+                if all(self.nodes[dep_id].status == "completed" or self.nodes[dep_id].status == "failed" for dep_id in node.dependencies):
                     executable.append(node)
         return executable

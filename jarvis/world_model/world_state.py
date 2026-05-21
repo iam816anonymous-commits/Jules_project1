@@ -16,7 +16,7 @@ class WorldState(BaseModel):
     confidence: float = 1.0
 
     def snapshot(self) -> Dict[str, Any]:
-        return self.dict()
+        return self.model_dump()
 
     def update(self, delta: Dict[str, Any]):
         # Update state based on new observations

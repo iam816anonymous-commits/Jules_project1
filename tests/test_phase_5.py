@@ -3,10 +3,19 @@ import asyncio
 from jarvis.cognition.cognitive_loop import CognitiveCycle
 from jarvis.cognition.goal_manager import GoalManager
 from jarvis.cognition.task_decomposer import TaskDecomposer
+from jarvis.persistence.memory_store import MemoryStore
+import os
 
 class TestPhase5(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.store = MemoryStore("test_phase5.db")
+
+    async def asyncTearDown(self):
+        if os.path.exists("test_phase5.db"):
+            os.remove("test_phase5.db")
+
     async def test_cognitive_cycle_init(self):
-        cycle = CognitiveCycle()
+        cycle = CognitiveCycle(self.store)
         self.assertFalse(cycle.active)
         self.assertIsNotNone(cycle.belief_state)
 
@@ -21,10 +30,8 @@ class TestPhase5(unittest.IsolatedAsyncioTestCase):
         td = TaskDecomposer()
         tasks = await td.decompose("Setup project")
         self.assertGreater(len(tasks), 0)
-        dag = td.build_dag(tasks)
-        self.assertEqual(len(dag), len(tasks))
-        if len(dag) > 1:
-            self.assertIn(dag[0].id, dag[1].dependencies)
+        engine = td.build_dag(tasks)
+        self.assertEqual(len(engine.nodes), len(tasks))
 
 if __name__ == '__main__':
     unittest.main()

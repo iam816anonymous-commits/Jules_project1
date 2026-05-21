@@ -2,34 +2,26 @@ from typing import Dict, Any
 
 class RewardEngine:
     def __init__(self):
-        self.weights = {
-            "success": 1.0,
-            "recovery": 0.5,
-            "speed_bonus": 0.2,
-            "hallucination_penalty": -1.0,
-            "unsafe_penalty": -2.0,
-            "timeout_penalty": -0.5
-        }
+        pass
 
-    def calculate_reward(self, outcome: Dict[str, Any], performance: Dict[str, Any]) -> float:
+    def calculate_reward(self,
+                         success: bool,
+                         duration: float,
+                         hallucinated: bool,
+                         recovered: bool) -> float:
         """
-        Calculate scalar reward based on outcome and performance metrics.
+        Calculate scalar reward: success - speed_penalty - hallucination + recovery_bonus.
         """
-        reward = 0.0
+        reward = 1.0 if success else -1.0
 
-        if outcome.get("success"):
-            reward += self.weights["success"]
+        # Speed penalty: 0.1 per 10 seconds, max 0.5
+        speed_penalty = min(0.5, (duration / 10.0) * 0.1)
+        reward -= speed_penalty
 
-        if outcome.get("recovered"):
-            reward += self.weights["recovery"]
+        if hallucinated:
+            reward -= 1.0
 
-        if outcome.get("hallucinated"):
-            reward += self.weights["hallucination_penalty"]
-
-        if performance.get("is_fast"):
-            reward += self.weights["speed_bonus"]
-
-        if performance.get("unsafe"):
-            reward += self.weights["unsafe_penalty"]
+        if recovered:
+            reward += 0.5
 
         return max(-2.0, min(1.5, reward))
