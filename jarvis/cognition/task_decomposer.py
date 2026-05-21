@@ -5,26 +5,29 @@ class TaskDecomposer:
     def __init__(self):
         pass
 
-    async def decompose(self, high_level_intent: str) -> List[Dict[str, Any]]:
+    async def decompose(self, high_level_intent: str, context: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         """
-        Convert high level intent into a list of structured subtasks.
+        Grounded decomposition: uses WorldModel context to tailor subtasks.
         """
-        # Dynamic mapping based on intent keywords (v1 heuristic)
         tasks = []
-        if "research" in high_level_intent.lower():
-            tasks = [
-                {"action": "open_browser", "params": {}},
-                {"action": "search_web", "params": {"query": high_level_intent}},
-                {"action": "summarize", "params": {}}
-            ]
-        elif "fibonacci" in high_level_intent.lower():
-            tasks = [
-                {"action": "open_ide", "params": {"name": "VSCode"}},
-                {"action": "write_file", "params": {"filename": "fib.py", "content": "def fib(n)..."}},
-                {"action": "execute_shell", "params": {"command": "python3 fib.py"}}
-            ]
-        else:
-            tasks = [{"action": "chat", "params": {"message": "Intent not mapped"}}]
+        intent = high_level_intent.lower()
+
+        # Heuristic Grounding: Check if browser is already open
+        browser_open = False
+        if context:
+            windows = context.get("windows", [])
+            browser_open = any("chrome" in w.get("title", "").lower() for w in windows)
+
+        if "research" in intent or "search" in intent:
+            if not browser_open:
+                tasks.append({"action": "open_browser", "params": {}})
+            tasks.append({"action": "search_web", "params": {"query": high_level_intent}})
+            tasks.append({"action": "summarize", "params": {}})
+
+        elif "fibonacci" in intent:
+            tasks.append({"action": "open_ide", "params": {"name": "VSCode"}})
+            tasks.append({"action": "write_file", "params": {"filename": "fib.py", "content": "def fib(n): return n if n <= 1 else fib(n-1)+fib(n-2)"}})
+            tasks.append({"action": "execute_shell", "params": {"command": "python3 fib.py"}})
 
         return tasks
 

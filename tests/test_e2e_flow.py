@@ -13,35 +13,43 @@ with patch.dict('sys.modules', {
 }):
     from jarvis.core.kernel import RuntimeKernel
     from jarvis.persistence.memory_store import MemoryStore
-    from jarvis.validation.benchmark_runner import BenchmarkRunner
 
-class TestV1Scenarios(unittest.IsolatedAsyncioTestCase):
+class TestEndToEnd(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self.db_name = "test_v1.db"
+        self.db_name = "test_e2e.db"
         self.kernel = RuntimeKernel()
+        # Inject test DB
         self.kernel.store = MemoryStore(self.db_name)
-        self.benchmark = BenchmarkRunner(self.kernel.store)
 
     async def asyncTearDown(self):
         if os.path.exists(self.db_name):
             os.remove(self.db_name)
 
-    async def test_research_scenario(self):
-        # Test decomposition and persistence
-        with patch.object(RuntimeKernel, '_orchestrate_execution', return_value=None):
-            await self.kernel.start("Research AI agents", "session_1")
+    async def test_full_research_to_save_flow(self):
+        # 1. Setup Goal
+        goal = "Research autonomous agents and save notes"
 
-            # Simulate a real dispatch to test metrics
+        # 2. Start Kernel (mocked start to control execution)
+        with patch.object(RuntimeKernel, '_orchestrate_execution', return_value=None):
+            await self.kernel.start(goal, "test_session")
+
+            # Verify Decomposition
+            self.assertEqual(self.kernel.goal_manager.active_goal_id, (await self.kernel.goal_manager.goals.get(list(self.kernel.goal_manager.goals.keys())[0])).id)
+
+            # 3. Simulate one dispatch
             node = MagicMock()
-            node.id = "n1"
+            node.id = "node_1"
             node.action_type = "mouse_move"
-            node.payload = {"x":0, "y":0}
-            node.name = "Move"
+            node.payload = {"x": 10, "y": 10}
+            node.name = "Test Move"
 
             await self.kernel.dispatch(node, MagicMock())
 
-            metrics = self.benchmark.calculate_v1_metrics()
-            self.assertEqual(metrics["total_episodes"], 1)
+            # 4. Verify Persistence
+            summary = self.kernel.store.summarize()
+            self.assertEqual(summary["episode_count"], 1)
+
+            await self.kernel.stop()
 
 if __name__ == '__main__':
     unittest.main()

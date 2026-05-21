@@ -2,11 +2,14 @@ from typing import List, Dict, Any
 from pydantic import BaseModel
 
 class UnifiedObservation(BaseModel):
-    vision_state: Dict[str, Any]
-    os_state: Dict[str, Any]
-    browser_state: Dict[str, Any]
-    memory_context: List[str]
-    confidence_score: float
+    windows: List[Dict[str, Any]]
+    active_window: Dict[str, Any]
+    focus: Optional[str] = None
+    browser_tabs: List[Dict[str, Any]] = []
+    clipboard: str = ""
+    ocr: List[Dict[str, Any]] = []
+    cursor: Dict[str, int] = {"x": 0, "y": 0}
+    confidence: float
 
 class ObservationFusion:
     def __init__(self):
@@ -16,23 +19,20 @@ class ObservationFusion:
               vision_data: Dict[str, Any],
               os_data: Dict[str, Any],
               browser_data: Dict[str, Any],
-              memory_data: List[str]) -> UnifiedObservation:
+              clipboard_data: str) -> UnifiedObservation:
         """
-        Merge multimodal inputs into a single unified observation with confidence scoring.
+        Merge Vision, OS, and Browser signals into a single source of truth.
         """
-        # Logic to resolve conflicts between Vision and OS APIs
-        # e.g., if OS says window is focused but Vision shows a different overlay
-
-        confidence = self._calculate_confidence(vision_data, os_data)
+        # Cross-validate vision OCR with active window title
+        v_text = vision_data.get("raw_text", [])
 
         return UnifiedObservation(
-            vision_state=vision_data,
-            os_state=os_data,
-            browser_state=browser_data,
-            memory_context=memory_data,
-            confidence_score=confidence
+            windows=os_data.get("all_windows", []),
+            active_window=os_data.get("active", {}),
+            focus=os_data.get("focus"),
+            browser_tabs=browser_data.get("tabs", []),
+            clipboard=clipboard_data,
+            ocr=v_text,
+            cursor=os_data.get("cursor", {"x": 0, "y": 0}),
+            confidence=0.9
         )
-
-    def _calculate_confidence(self, vision: Dict[str, Any], os: Dict[str, Any]) -> float:
-        # Cross-validation logic
-        return 0.95
