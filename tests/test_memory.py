@@ -6,7 +6,8 @@ import os
 
 class TestMemory(unittest.TestCase):
     def setUp(self):
-        self.store = MemoryStore("test_mem.db")
+        self.db_url = "sqlite:///test_mem.db"
+        self.store = MemoryStore(self.db_url)
 
     def tearDown(self):
         if os.path.exists("test_mem.db"):

@@ -10,6 +10,8 @@ from jarvis.desktop.browser_controller import BrowserController
 from jarvis.world_model.action_validator import ActionValidator
 from jarvis.persistence.memory_store import MemoryStore
 from jarvis.learning.reward_engine import RewardEngine
+from jarvis.execution.tool_router import ToolRouter, ToolRegistry
+from jarvis.execution.action_dispatcher import ActionDispatcher
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +24,26 @@ class RuntimeKernel:
         self.decomposer = TaskDecomposer()
         self.policy = PolicyEngine()
         self.validator = ActionValidator()
+
+        # Tools
         self.executor = ControlExecutor()
         self.browser = BrowserController()
+
+        # Registry & Router
+        self.registry = ToolRegistry()
+        self._register_tools()
+        self.router = ToolRouter(self.registry)
+        self.dispatcher = ActionDispatcher(self.router)
+
         self.reward_engine = RewardEngine()
         self.session_id: Optional[str] = None
+
+    def _register_tools(self):
+        self.registry.register("mouse_move", self.executor.mouse_move)
+        self.registry.register("mouse_click", self.executor.mouse_click)
+        self.registry.register("type", self.executor.keyboard_type)
+        self.registry.register("open_browser", self.browser.start)
+        self.registry.register("search_web", self.browser.navigate) # simplified mapping
 
     async def start(self, goal: str, session_id: str):
         self.active = True
@@ -52,11 +70,11 @@ class RuntimeKernel:
                 continue
 
             for node in executable:
-                await self.dispatch(node, engine)
+                await self.dispatch_task(node, engine)
 
             await asyncio.sleep(0.5)
 
-    async def dispatch(self, node: Any, engine: Any):
+    async def dispatch_task(self, node: Any, engine: Any):
         node.status = "running"
         action = {"action": node.action_type, "params": node.payload}
 
@@ -83,6 +101,7 @@ class RuntimeKernel:
         })
 
     async def execute_action(self, action: Dict[str, Any]) -> Any:
+        # Integrated Execution with Routing & Policy
         action_name = action.get("action")
         params = action.get("params", {})
 
@@ -94,27 +113,11 @@ class RuntimeKernel:
         if not is_valid:
             return {"success": False, "error": f"Validation failed: {msg}"}
 
-        try:
-            # Tool Routing
-            if action_name == "mouse_move":
-                await self.executor.mouse_move(params.get("x"), params.get("y"))
-            elif action_name == "mouse_click":
-                await self.executor.mouse_click(params.get("x"), params.get("y"))
-            elif action_name == "type":
-                await self.executor.keyboard_type(params.get("text"))
-            elif action_name == "open_browser":
-                await self.browser.start()
-            elif action_name == "search_web":
-                await self.browser.navigate(f"https://www.google.com/search?q={params.get('query')}")
-            else:
-                return {"success": False, "error": f"Unsupported action type: {action_name}"}
-
-            return {"success": True}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        # Route to tools
+        return await self.dispatcher.dispatch(action)
 
     async def handle_failure(self, node: Any, engine: Any):
-        logger.warning(f"Task {node.name} failed. No recovery implemented yet.")
+        logger.warning(f"Task {node.name} failed.")
 
     async def stop(self):
         self.active = False

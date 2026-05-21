@@ -1,92 +1,78 @@
-import sqlite3
-import json
-from typing import Dict, Any, List
+from sqlalchemy import create_engine, Column, String, Float, DateTime, Text
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, scoped_session
 import datetime
+import json
 
-class DateTimeEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, datetime.datetime):
-            return o.isoformat()
-        return super().default(o)
+Base = declarative_base()
+
+class Episode(Base):
+    __tablename__ = 'episodes'
+    id = Column(String, primary_key=True)
+    goal = Column(String)
+    observation = Column(Text)
+    action = Column(Text)
+    reflection = Column(Text)
+    reward = Column(Float)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+
+class Belief(Base):
+    __tablename__ = 'beliefs'
+    id = Column(String, primary_key=True)
+    state = Column(Text)
+    confidence = Column(Float)
+    updated = Column(DateTime, default=datetime.datetime.utcnow)
 
 class MemoryStore:
-    def __init__(self, db_path: str = "jarvis_memory.db"):
-        self.db_path = db_path
-        self.conn = sqlite3.connect(db_path)
-        self._init_db()
+    def __init__(self, db_url: str = "sqlite:///jarvis_memory.db"):
+        self.engine = create_engine(db_url, connect_args={"check_same_thread": False})
+        Base.metadata.create_all(self.engine)
+        self.session_factory = sessionmaker(bind=self.engine)
+        self.Session = scoped_session(self.session_factory)
 
-    def _init_db(self):
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS episodes (
-                id TEXT PRIMARY KEY,
-                goal TEXT,
-                observation TEXT,
-                action TEXT,
-                reflection TEXT,
-                reward REAL,
-                timestamp DATETIME
+    def save_episode(self, data: dict):
+        session = self.Session()
+        try:
+            episode = Episode(
+                id=data['id'],
+                goal=data['goal'],
+                observation=json.dumps(data['observation']),
+                action=json.dumps(data['action']),
+                reflection=json.dumps(data['reflection']),
+                reward=data['reward']
             )
-        ''')
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS beliefs (
-                id TEXT PRIMARY KEY,
-                state TEXT,
-                confidence REAL,
-                updated DATETIME
-            )
-        ''')
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS skills (
-                id TEXT PRIMARY KEY,
-                pattern TEXT,
-                reward REAL,
-                usage INTEGER
-            )
-        ''')
-        self.conn.commit()
+            session.add(episode)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            self.Session.remove()
 
-    def save_episode(self, episode_data: Dict[str, Any]):
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            INSERT INTO episodes (id, goal, observation, action, reflection, reward, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            episode_data['id'],
-            episode_data['goal'],
-            json.dumps(episode_data['observation'], cls=DateTimeEncoder),
-            json.dumps(episode_data['action'], cls=DateTimeEncoder),
-            json.dumps(episode_data['reflection'], cls=DateTimeEncoder),
-            episode_data['reward'],
-            datetime.datetime.utcnow().isoformat()
-        ))
-        self.conn.commit()
+    def update_belief(self, belief_id: str, state: dict, confidence: float):
+        session = self.Session()
+        try:
+            belief = session.query(Belief).filter_by(id=belief_id).first()
+            if belief:
+                belief.state = json.dumps(state)
+                belief.confidence = confidence
+                belief.updated = datetime.datetime.utcnow()
+            else:
+                belief = Belief(id=belief_id, state=json.dumps(state), confidence=confidence)
+                session.add(belief)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            self.Session.remove()
 
-    def update_belief(self, belief_id: str, state: Dict[str, Any], confidence: float):
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            INSERT OR REPLACE INTO beliefs (id, state, confidence, updated)
-            VALUES (?, ?, ?, ?)
-        ''', (belief_id, json.dumps(state, cls=DateTimeEncoder), confidence, datetime.datetime.utcnow().isoformat()))
-        self.conn.commit()
-
-    def archive(self, days: int = 30):
-        """Move old episodes to archive table or separate DB."""
-        cursor = self.conn.cursor()
-        cursor.execute("CREATE TABLE IF NOT EXISTS archived_episodes AS SELECT * FROM episodes WHERE 1=0")
-        cursor.execute("INSERT INTO archived_episodes SELECT * FROM episodes WHERE timestamp < datetime('now', ?)", (f'-{days} days',))
-        cursor.execute("DELETE FROM episodes WHERE timestamp < datetime('now', ?)", (f'-{days} days',))
-        self.conn.commit()
+    def summarize(self):
+        session = self.Session()
+        count = session.query(Episode).count()
+        self.Session.remove()
+        return {"episode_count": count}
 
     def compact(self):
-        """Reclaim unused space."""
-        self.conn.execute("VACUUM")
-
-    def summarize(self) -> Dict[str, Any]:
-        """Performance summary of the DB."""
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM episodes")
-        count = cursor.fetchone()[0]
-        import os
-        size = os.path.getsize(self.db_path) / (1024 * 1024) # MB
-        return {"episode_count": count, "db_size_mb": size}
+        with self.engine.connect() as conn:
+            conn.execute("VACUUM")
