@@ -1,0 +1,30 @@
+import unittest
+import asyncio
+from jarvis.cognition.cognitive_loop import CognitiveCycle
+from jarvis.cognition.goal_manager import GoalManager
+from jarvis.cognition.task_decomposer import TaskDecomposer
+
+class TestPhase5(unittest.IsolatedAsyncioTestCase):
+    async def test_cognitive_cycle_init(self):
+        cycle = CognitiveCycle()
+        self.assertFalse(cycle.active)
+        self.assertIsNotNone(cycle.belief_state)
+
+    def test_goal_hierarchy(self):
+        gm = GoalManager()
+        parent = gm.add_goal("Root Task")
+        child = gm.add_goal("Sub Task", parent_id=parent)
+        self.assertEqual(len(gm.goals), 2)
+        self.assertIn(child, gm.goals[parent].children)
+
+    async def test_task_decomposition(self):
+        td = TaskDecomposer()
+        tasks = await td.decompose("Setup project")
+        self.assertGreater(len(tasks), 0)
+        dag = td.build_dag(tasks)
+        self.assertEqual(len(dag), len(tasks))
+        if len(dag) > 1:
+            self.assertIn(dag[0].id, dag[1].dependencies)
+
+if __name__ == '__main__':
+    unittest.main()
