@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.so
+.pytest_cache/
+.venv/
+env/
+build/
+dist/
+logs/
+runtime/
+memory/
+snapshots/
+*.sqlite
+*.db

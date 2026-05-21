@@ -7,13 +7,15 @@ from jarvis.cognition.task_decomposer import TaskDecomposer
 from jarvis.core.policy import PolicyEngine, RiskLevel
 from jarvis.desktop.control_executor import ControlExecutor
 from jarvis.world_model.action_validator import ActionValidator
+from jarvis.persistence.memory_store import MemoryStore
 
 logger = logging.getLogger(__name__)
 
 class RuntimeKernel:
     def __init__(self):
         self.active = False
-        self.cognitive_cycle = CognitiveCycle()
+        self.store = MemoryStore()
+        self.cognitive_cycle = CognitiveCycle(self.store)
         self.goal_manager = GoalManager()
         self.decomposer = TaskDecomposer()
         self.policy = PolicyEngine()
@@ -34,21 +36,12 @@ class RuntimeKernel:
         dag = self.decomposer.build_dag(subtasks)
 
         # 3. Start Cognitive Loop
-        # We delegate the core execution logic to CognitiveCycle
-        # but the Kernel provides the high-level orchestration
-        logger.info(f"Starting RuntimeKernel for session {session_id} with goal: {goal}")
-
-        # In a real system, the CognitiveCycle would be the primary loop
-        # We'll run it here
         asyncio.create_task(self.cognitive_cycle.start())
 
         await self._orchestrate_execution(dag)
 
-    async def _orchestrate_execution(self, dag: List[Any]):
+    async def _orchestrate_execution(self, dag: Any):
         while self.active:
-            # High level orchestration logic
-            # This would interface with the CognitiveCycle's belief state
-            # and drive the execution of the DAG nodes
             await asyncio.sleep(1)
 
     async def stop(self):
@@ -56,7 +49,6 @@ class RuntimeKernel:
         await self.cognitive_cycle.stop()
 
     async def execute_action(self, action: Dict[str, Any]) -> Any:
-        # Integrated Execution with Policy and Validation
         risk = self.policy.evaluate(action.get("action"), action.get("params", {}))
         if risk == RiskLevel.BLOCK:
             raise PermissionError(f"Action blocked by policy: {action.get('action')}")
@@ -66,6 +58,4 @@ class RuntimeKernel:
             logger.warning(f"Validation failed: {msg}")
             return {"success": False, "error": msg}
 
-        # Route to executor
-        # ...
         return {"success": True}

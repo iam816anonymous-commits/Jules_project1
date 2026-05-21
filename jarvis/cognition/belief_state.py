@@ -1,5 +1,5 @@
 from typing import Dict, Any, List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import datetime
 
 class Belief(BaseModel):
@@ -7,7 +7,7 @@ class Belief(BaseModel):
     predicate: str
     object: Any
     confidence: float
-    timestamp: datetime.datetime = datetime.datetime.utcnow()
+    timestamp: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
 
 class BeliefState:
     def __init__(self):
@@ -17,8 +17,9 @@ class BeliefState:
         """
         Update internal beliefs based on new observations.
         """
-        # Logic to merge new info with existing beliefs
-        pass
+        for key, val in observation.items():
+            belief = Belief(subject=key, predicate="is", object=val, confidence=1.0)
+            self.beliefs[key] = belief
 
     def get_belief(self, subject: str) -> Optional[Belief]:
         return self.beliefs.get(subject)
@@ -26,9 +27,3 @@ class BeliefState:
     def invalidate(self, subject: str):
         if subject in self.beliefs:
             del self.beliefs[subject]
-
-    def merge(self, other_beliefs: List[Belief]):
-        for b in other_beliefs:
-            existing = self.beliefs.get(b.subject)
-            if not existing or b.confidence > existing.confidence:
-                self.beliefs[b.subject] = b
