@@ -4,6 +4,8 @@ from typing import Optional, Dict, Any
 from jarvis.world_model.world_state import WorldState
 from jarvis.cognition.belief_state import BeliefState
 from jarvis.persistence.memory_store import MemoryStore
+from jarvis.vision.observer import VisionObserver
+from jarvis.desktop.window_manager import WindowManager
 
 logger = logging.getLogger(__name__)
 
@@ -13,44 +15,44 @@ class CognitiveCycle:
         self.belief_state = BeliefState()
         self.world_model = WorldState()
         self.store = store
+        self.vision = VisionObserver()
+        self.window_manager = WindowManager()
 
     async def start(self):
         self.active = True
         logger.info("CognitiveCycle started")
         while self.active:
             await self.tick()
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.5)
 
     async def tick(self):
-        """
-        Full cognitive loop: Observe -> Belief -> Goal -> Plan -> Action -> Execute -> Reflect -> Persist.
-        """
         try:
-            # 1. Observe
-            observation = await self.observe()
+            # 1. Observe (Multimodal)
+            vision_obs = self.vision.observe()
+            os_obs = self.window_manager.get_active_window()
+            observation = {**vision_obs, "active_window": os_obs}
 
             # 2. Update Beliefs
             self.belief_state.update(observation)
 
             # 3. Ground World Model
             self.world_model.update(observation)
+            self.world_model.confidence = 0.95 # Heuristic for v1
 
             # 4. Persistence
-            self.store.update_belief("cycle_state", self.belief_state.beliefs, 1.0)
+            belief_data = {k: v.model_dump() for k, v in self.belief_state.beliefs.items()}
+            self.store.update_belief("cycle_state", belief_data, self.world_model.confidence)
 
-            logger.debug("Cognitive cycle tick completed")
+            logger.debug(f"Tick completed. Active window: {os_obs.get('title')}")
 
         except Exception as e:
             logger.error(f"Error in cognitive tick: {e}")
             await self.recover(e)
-
-    async def observe(self) -> Dict[str, Any]:
-        # Logic to gather from vision/desktop
-        return {"status": "active", "timestamp": "now"}
 
     async def stop(self):
         self.active = False
 
     async def recover(self, error: Exception):
         logger.warning(f"CognitiveCycle recovering from: {error}")
-        pass
+        # Reset belief confidence on error
+        self.world_model.confidence *= 0.5

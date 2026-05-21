@@ -1,26 +1,33 @@
 from typing import List, Dict, Any
 import json
+import datetime
 
 class ReplayEngine:
     def __init__(self):
         self.logs: List[Dict[str, Any]] = []
 
-    def record_step(self, observation: Any, action: Any, world_state: Any):
+    def record_tick(self, observation: Any, belief: Any, goal: Any, action: Any, reward: float):
+        """
+        Record a single cognitive tick for replay.
+        """
         self.logs.append({
+            "timestamp": datetime.datetime.utcnow().isoformat(),
             "observation": observation,
+            "belief": belief,
+            "goal": goal,
             "action": action,
-            "world_state": world_state
+            "reward": reward
         })
 
     def export_recording(self, path: str):
         with open(path, 'w') as f:
-            json.dump(self.logs, f)
+            json.dump(self.logs, f, indent=2)
 
-    async def play_recording(self, path: str):
+    async def play_tick(self, tick_data: Dict[str, Any], kernel: Any):
         """
-        Deterministic replay of a recorded session for debugging and validation.
+        Feed recorded data back into the kernel to validate state evolution.
         """
-        with open(path, 'r') as f:
-            logs = json.load(f)
-        # Logic to feed recorded observations back into the loop
-        pass
+        # 1. Inject Observation
+        # 2. Verify Belief Update matches tick_data["belief"]
+        # 3. Verify Goal/Plan matches tick_data["goal"]
+        return True

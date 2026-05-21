@@ -11,6 +11,7 @@ class DateTimeEncoder(json.JSONEncoder):
 
 class MemoryStore:
     def __init__(self, db_path: str = "jarvis_memory.db"):
+        self.db_path = db_path
         self.conn = sqlite3.connect(db_path)
         self._init_db()
 
@@ -69,10 +70,23 @@ class MemoryStore:
         ''', (belief_id, json.dumps(state, cls=DateTimeEncoder), confidence, datetime.datetime.utcnow().isoformat()))
         self.conn.commit()
 
-    def save_skill(self, skill_id: str, pattern: List[Dict[str, Any]], reward: float):
+    def archive(self, days: int = 30):
+        """Move old episodes to archive table or separate DB."""
         cursor = self.conn.cursor()
-        cursor.execute('''
-            INSERT OR REPLACE INTO skills (id, pattern, reward, usage)
-            VALUES (?, ?, ?, COALESCE((SELECT usage FROM skills WHERE id = ?), 0) + 1)
-        ''', (skill_id, json.dumps(pattern, cls=DateTimeEncoder), reward, skill_id))
+        cursor.execute("CREATE TABLE IF NOT EXISTS archived_episodes AS SELECT * FROM episodes WHERE 1=0")
+        cursor.execute("INSERT INTO archived_episodes SELECT * FROM episodes WHERE timestamp < datetime('now', ?)", (f'-{days} days',))
+        cursor.execute("DELETE FROM episodes WHERE timestamp < datetime('now', ?)", (f'-{days} days',))
         self.conn.commit()
+
+    def compact(self):
+        """Reclaim unused space."""
+        self.conn.execute("VACUUM")
+
+    def summarize(self) -> Dict[str, Any]:
+        """Performance summary of the DB."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM episodes")
+        count = cursor.fetchone()[0]
+        import os
+        size = os.path.getsize(self.db_path) / (1024 * 1024) # MB
+        return {"episode_count": count, "db_size_mb": size}

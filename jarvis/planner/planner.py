@@ -15,13 +15,19 @@ class Planner:
 
     async def generate_plans(self, goal: str, context: Dict[str, Any]) -> List[Plan]:
         """
-        Generate grounded plans based on goal and world model context.
+        Generate plans based on goal and world model context.
         """
-        # Logic to decide between multiple strategies
-        # Strategy A: Linear sequence
-        steps_a = [{"action": "mouse_move", "params": {"x": 100, "y": 100}}]
+        # Search strategy if goal contains 'search' or 'research'
+        if "research" in goal.lower() or "search" in goal.lower():
+            steps = [
+                {"action": "open_browser", "params": {}},
+                {"action": "search_web", "params": {"query": goal}},
+                {"action": "summarize", "params": {}}
+            ]
+            return [Plan(steps=steps, score=0.95)]
 
-        return [Plan(steps=steps_a, score=0.9)]
+        # Default fallback
+        return [Plan(steps=[{"action": "chat", "params": {"message": goal}}], score=0.5)]
 
     async def select_best_plan(self, plans: List[Plan]) -> Plan:
         if not plans:
