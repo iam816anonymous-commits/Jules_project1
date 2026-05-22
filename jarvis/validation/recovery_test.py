@@ -14,7 +14,7 @@ async def test_persistence_recovery():
     # 2. Restart and Restore
     kernel_new = RuntimeKernel()
     # Check if goal is in DB
-    cursor = kernel_new.store.conn.cursor()
+    cursor = kernel_new.store.Session().connection().connection.cursor()
     cursor.execute("SELECT goal FROM episodes WHERE id LIKE '%Task_0%'")
     row = cursor.fetchone()
     if row:

@@ -3,6 +3,7 @@ from jarvis.core.engine import Node, RuntimeGraphEngine
 
 class TaskDecomposer:
     def __init__(self):
+        pass
 
     async def decompose(self, high_level_intent: str, context: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         """
@@ -17,15 +18,18 @@ class TaskDecomposer:
             windows = context.get("windows", [])
             browser_open = any("chrome" in w.get("title", "").lower() for w in windows)
 
-        if "research" in intent or "search" in intent:
+        if "fastapi" in intent or "research" in intent:
             if not browser_open:
                 tasks.append({"action": "open_browser", "params": {}})
             tasks.append({"action": "search_web", "params": {"query": high_level_intent}})
-            tasks.append({"action": "summarize", "params": {}})
+            tasks.append({"action": "extract_notes", "params": {}})
+            tasks.append({"action": "open_editor", "params": {"name": "VSCode"}})
+            tasks.append({"action": "save_file", "params": {"filename": "app.py", "content": "from fastapi import FastAPI\napp = FastAPI()"}})
+            tasks.append({"action": "execute_shell", "params": {"command": "python3 app.py"}})
 
         elif "fibonacci" in intent:
-            tasks.append({"action": "open_ide", "params": {"name": "VSCode"}})
-            tasks.append({"action": "write_file", "params": {"filename": "fib.py", "content": "def fib(n): return n if n <= 1 else fib(n-1)+fib(n-2)"}})
+            tasks.append({"action": "open_editor", "params": {"name": "VSCode"}})
+            tasks.append({"action": "save_file", "params": {"filename": "fib.py", "content": "def fib(n): return n if n <= 1 else fib(n-1)+fib(n-2)"}})
             tasks.append({"action": "execute_shell", "params": {"command": "python3 fib.py"}})
 
         return tasks
