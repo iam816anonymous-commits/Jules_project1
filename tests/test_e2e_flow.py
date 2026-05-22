@@ -34,7 +34,7 @@ class TestEndToEnd(unittest.IsolatedAsyncioTestCase):
             await self.kernel.start(goal, "test_session")
 
             # Verify Decomposition
-            self.assertEqual(self.kernel.goal_manager.active_goal_id, (await self.kernel.goal_manager.goals.get(list(self.kernel.goal_manager.goals.keys())[0])).id)
+            self.assertEqual(self.kernel.goal_manager.active_goal_id, (self.kernel.goal_manager.goals.get(list(self.kernel.goal_manager.goals.keys())[0])).id)
 
             # 3. Simulate one dispatch
             node = MagicMock()
