@@ -25,7 +25,6 @@ class SkillLibrary:
         """
         Identify repeated successful workflows that can be promoted to skills.
         """
-        pass
 
     def list_skills(self) -> List[Dict[str, Any]]:
         return [{"name": s.name, "description": s.description} for s in self.skills.values()]

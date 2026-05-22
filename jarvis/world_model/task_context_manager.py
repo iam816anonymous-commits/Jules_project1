@@ -14,7 +14,6 @@ class TaskContextManager:
             self.context_stack.pop()
             if self.context_stack:
                 # Update active_task_id from previous context if stored there
-                pass
             else:
                 self.active_task_id = None
 

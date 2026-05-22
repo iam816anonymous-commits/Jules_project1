@@ -18,7 +18,6 @@ class AgentMetrics:
                 self.metrics[event_type].append(value)
             else:
                 # Update scalar metric
-                pass
 
     def get_report(self) -> Dict[str, Any]:
         return self.metrics

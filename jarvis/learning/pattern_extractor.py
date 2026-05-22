@@ -3,7 +3,6 @@ from collections import Counter
 
 class PatternExtractor:
     def __init__(self):
-        pass
 
     def extract_sequences(self, history: List[Dict[str, Any]]) -> List[List[str]]:
         """
@@ -19,4 +18,3 @@ class PatternExtractor:
         return 0.0
 
     def mine_browser_patterns(self, browser_history: List[Dict[str, Any]]):
-        pass

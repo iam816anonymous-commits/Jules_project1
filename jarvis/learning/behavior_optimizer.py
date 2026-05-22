@@ -13,7 +13,6 @@ class BehaviorOptimizer:
         Adjust planner preferences and tool bias based on historical rewards.
         """
         # Reinforcement learning-like adjustment of preferences
-        pass
 
     def get_current_preferences(self) -> Dict[str, Any]:
         return self.preferences

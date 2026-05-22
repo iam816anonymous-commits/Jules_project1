@@ -30,7 +30,6 @@ class ChaosEngine:
 
         elif fault_type == "network_loss":
             # This would block the browser if implemented
-            pass
 
         elif fault_type == "planner_deadlock":
             # Invalidate all goals
@@ -42,4 +41,3 @@ class ChaosEngine:
     async def run_chaos_session(self, duration_sec: int):
         fault_types = ["window_close", "browser_crash", "focus_loss", "ocr_error", "planner_deadlock"]
         # Logic to periodically inject random faults during kernel run
-        pass

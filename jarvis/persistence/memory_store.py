@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
 import datetime
 import json
+from typing import Dict, Any, List
 
 Base = declarative_base()
 
@@ -67,11 +68,38 @@ class MemoryStore:
         finally:
             self.Session.remove()
 
+    def get_recent_episodes(self, limit: int = 20) -> List[Dict[str, Any]]:
+        session = self.Session()
+        try:
+            episodes = session.query(Episode).order_by(Episode.timestamp.desc()).limit(limit).all()
+            return [{
+                "id": e.id,
+                "goal": e.goal,
+                "reward": e.reward,
+                "timestamp": e.timestamp.isoformat()
+            } for e in episodes]
+        finally:
+            self.Session.remove()
+
+    def get_beliefs(self) -> List[Dict[str, Any]]:
+        session = self.Session()
+        try:
+            beliefs = session.query(Belief).all()
+            return [{
+                "id": b.id,
+                "confidence": b.confidence,
+                "updated": b.updated.isoformat()
+            } for b in beliefs]
+        finally:
+            self.Session.remove()
+
     def summarize(self):
         session = self.Session()
-        count = session.query(Episode).count()
-        self.Session.remove()
-        return {"episode_count": count}
+        try:
+            count = session.query(Episode).count()
+            return {"episode_count": count}
+        finally:
+            self.Session.remove()
 
     def compact(self):
         with self.engine.connect() as conn:

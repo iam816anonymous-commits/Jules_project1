@@ -31,25 +31,8 @@ async def get_memory_summary():
 
 @app.get("/api/memory/episodes")
 async def get_episodes():
-    """
-    Returns actual episodes from MemoryStore.
-    """
-    cursor = kernel.store.conn.cursor()
-    cursor.execute("SELECT * FROM episodes ORDER BY timestamp DESC LIMIT 20")
-    rows = cursor.fetchall()
-    episodes = []
-    for r in rows:
-        episodes.append({
-            "id": r[0],
-            "goal": r[1],
-            "reward": r[5],
-            "timestamp": r[6]
-        })
-    return {"episodes": episodes}
+    return {"episodes": kernel.store.get_recent_episodes()}
 
 @app.get("/api/memory/beliefs")
 async def get_beliefs():
-    cursor = kernel.store.conn.cursor()
-    cursor.execute("SELECT * FROM beliefs")
-    rows = cursor.fetchall()
-    return {"beliefs": [{"id": r[0], "confidence": r[2]} for r in rows]}
+    return {"beliefs": kernel.store.get_beliefs()}

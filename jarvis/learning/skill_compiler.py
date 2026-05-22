@@ -3,7 +3,6 @@ from jarvis.learning.skill_library import Skill
 
 class SkillCompiler:
     def __init__(self):
-        pass
 
     def compile_skill(self, name: str, sequence: List[Dict[str, Any]]) -> Skill:
         """

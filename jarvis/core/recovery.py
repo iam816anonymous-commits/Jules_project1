@@ -5,7 +5,6 @@ logger = logging.getLogger(__name__)
 
 class ReflectionEngine:
     def __init__(self):
-        pass
 
     async def analyze(self, goal: str, history: List[Dict[str, Any]], last_result: Any) -> Dict[str, Any]:
         """

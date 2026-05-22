@@ -29,7 +29,6 @@ class ControlExecutor:
         pyautogui.scroll(clicks)
 
     async def clipboard_set(self, text: str):
-        pass
 
     async def clipboard_get(self) -> str:
         return ""

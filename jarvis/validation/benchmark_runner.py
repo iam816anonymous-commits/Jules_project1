@@ -10,25 +10,18 @@ class BenchmarkRunner:
         """
         Derive metrics from real execution history in the DB.
         """
-        cursor = self.store.conn.cursor()
+        summary = self.store.summarize()
+        total = summary.get("episode_count", 0)
 
-        # 1. Completion Rate
-        cursor.execute("SELECT COUNT(*) FROM episodes WHERE reflection LIKE '%success\": true%'")
-        successes = cursor.fetchone()[0]
-        cursor.execute("SELECT COUNT(*) FROM episodes")
-        total = cursor.fetchone()[0]
+        episodes = self.store.get_recent_episodes(limit=100)
+        # Simplified success rate from reward
+        successes = len([e for e in episodes if e["reward"] > 0])
 
-        # 2. Avg Reward
-        cursor.execute("SELECT AVG(reward) FROM episodes")
-        avg_reward = cursor.fetchone()[0] or 0.0
-
-        # 3. Hallucination Count (Proxy by low belief confidence in history)
-        cursor.execute("SELECT COUNT(*) FROM beliefs WHERE confidence < 0.5")
-        hallucinations = cursor.fetchone()[0]
+        beliefs = self.store.get_beliefs()
+        hallucinations = len([b for b in beliefs if b["confidence"] < 0.5])
 
         return {
-            "success_rate": successes / total if total > 0 else 0,
-            "avg_reward": avg_reward,
+            "success_rate": successes / len(episodes) if episodes else 0,
             "hallucination_count": hallucinations,
             "total_episodes": total
         }

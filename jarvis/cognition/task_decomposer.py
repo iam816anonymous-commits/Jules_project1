@@ -3,7 +3,6 @@ from jarvis.core.engine import Node, RuntimeGraphEngine
 
 class TaskDecomposer:
     def __init__(self):
-        pass
 
     async def decompose(self, high_level_intent: str, context: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         """
