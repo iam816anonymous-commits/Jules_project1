@@ -11,7 +11,6 @@ class SemanticMemory:
         Embed and store text in the vector database.
         """
         # TODO: Implement embedding generation and Qdrant upsert
-        pass
 
     async def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
         """

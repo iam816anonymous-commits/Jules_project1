@@ -21,3 +21,16 @@ class RuntimeState(BaseModel):
     assumptions: List[str]
     context: Dict[str, Any]
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class ActionContract(BaseModel):
+    type: str
+    target: str
+    params: Dict[str, Any]
+    confidence: float
+    expected_state_summary: Optional[str] = None
+
+class ActionResult(BaseModel):
+    success: bool
+    actual_state: Dict[str, Any]
+    delta: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None

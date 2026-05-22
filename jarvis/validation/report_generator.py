@@ -4,7 +4,6 @@ import datetime
 
 class ReportGenerator:
     def __init__(self):
-        pass
 
     def generate_v1_report(self,
                            metrics: Dict[str, Any],

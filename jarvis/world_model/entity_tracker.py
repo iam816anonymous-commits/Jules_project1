@@ -18,7 +18,6 @@ class EntityTracker:
         Track entities across observations using spatial and semantic similarity.
         """
         # Logic to correlate new observations with existing entities
-        pass
 
     def get_entity(self, entity_id: str) -> Optional[Entity]:
         return self.entities.get(entity_id)

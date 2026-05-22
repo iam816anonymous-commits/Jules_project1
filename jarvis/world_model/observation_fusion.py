@@ -13,7 +13,6 @@ class UnifiedObservation(BaseModel):
 
 class ObservationFusion:
     def __init__(self):
-        pass
 
     def merge(self,
               vision_data: Dict[str, Any],

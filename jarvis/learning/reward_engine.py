@@ -2,7 +2,6 @@ from typing import Dict, Any
 
 class RewardEngine:
     def __init__(self):
-        pass
 
     def calculate_reward(self,
                          success: bool,

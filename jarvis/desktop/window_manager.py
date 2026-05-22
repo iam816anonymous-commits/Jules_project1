@@ -4,7 +4,6 @@ from typing import List, Dict, Any
 
 class WindowManager:
     def __init__(self):
-        pass
 
     def get_active_window(self) -> Dict[str, Any]:
         win = gw.getActiveWindow()
@@ -25,7 +24,6 @@ class WindowManager:
 
 class DeviceManager:
     def __init__(self):
-        pass
 
     def get_system_stats(self) -> Dict[str, Any]:
         return {
