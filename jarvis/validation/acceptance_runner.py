@@ -30,7 +30,7 @@ async def run_acceptance_scenario():
     print(f"Artifacts collected: {summary['episode_count']} episodes in database.")
 
     # Query last 5 actions
-    cursor = store.conn.cursor()
+    cursor = store.Session().connection().connection.cursor()
     cursor.execute("SELECT goal, action, timestamp FROM episodes ORDER BY timestamp DESC LIMIT 5")
     actions = cursor.fetchall()
     for goal, action, ts in actions:

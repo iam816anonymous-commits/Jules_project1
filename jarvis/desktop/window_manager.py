@@ -21,12 +21,3 @@ class WindowManager:
         wins = gw.getWindowsWithTitle(title)
         if wins:
             wins[0].activate()
-
-class DeviceManager:
-    def __init__(self):
-
-    def get_system_stats(self) -> Dict[str, Any]:
-        return {
-            "cpu_percent": psutil.cpu_percent(),
-            "memory_percent": psutil.virtual_memory().percent,
-        }
