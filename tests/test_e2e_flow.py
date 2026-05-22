@@ -43,7 +43,7 @@ class TestEndToEnd(unittest.IsolatedAsyncioTestCase):
             node.payload = {"x": 10, "y": 10}
             node.name = "Test Move"
 
-            await self.kernel.dispatch(node, MagicMock())
+            await self.kernel.dispatch_task(node, MagicMock())
 
             # 4. Verify Persistence
             summary = self.kernel.store.summarize()

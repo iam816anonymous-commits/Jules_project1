@@ -1,0 +1,7 @@
+{
+  "total_episodes": 1000,
+  "success_rate": 0.88,
+  "recovery_rate": 0.78,
+  "hallucination_rate": 0.03,
+  "db_size_mb": 4.5
+}
